@@ -43,7 +43,7 @@ Large files are **not committed to git** (see `.gitignore`): the repository stay
 ### 1. Get the repository
 
 ```bash
-git clone https://github.com/YOUR-USER/ia-da-sobrevivencia.git
+git clone https://github.com/sdalberto/ia-da-sobrevivencia.git
 cd ia-da-sobrevivencia
 ```
 
