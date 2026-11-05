@@ -43,7 +43,7 @@ Os arquivos grandes **não vão para o git** (veja `.gitignore`): o repositório
 ### 1. Baixe o repositório
 
 ```bash
-git clone https://github.com/SEU-USUARIO/ia-da-sobrevivencia.git
+git clone https://github.com/sdalberto/ia-da-sobrevivencia.git
 cd ia-da-sobrevivencia
 ```
 
