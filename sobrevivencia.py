@@ -1,0 +1,280 @@
+#!/usr/bin/env python3
+"""IA da Sobrevivência — ponto de entrada.
+
+Uso:
+  python sobrevivencia.py start              # inicia motores + interface web (padrão)
+  python sobrevivencia.py chat               # conversa no terminal
+  python sobrevivencia.py ask "pergunta"     # pergunta única no terminal
+  python sobrevivencia.py search "termos"    # busca nos guias
+  python sobrevivencia.py prepare            # (com internet) baixa modelo, motores e bases Kiwix
+  python sobrevivencia.py status             # mostra o que está instalado/ativo
+
+Opções comuns: --lang pt|en|es   --host 0.0.0.0 (compartilhar na rede local)   --port 8090
+"""
+
+import argparse
+import os
+import sys
+import threading
+import time
+import webbrowser
+
+if sys.version_info < (3, 8):
+    sys.exit("Python 3.8+ is required / É necessário Python 3.8 ou superior.")
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Garante saída UTF-8 em terminais Windows antigos.
+for stream in (sys.stdout, sys.stderr):
+    try:
+        stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+from app import __version__  # noqa: E402
+from app.config import LANGS, load_settings, platform_key  # noqa: E402
+
+BANNER = r"""
+  +--------------------------------------------------------------+
+  |   IA DA SOBREVIVENCIA  ·  SURVIVAL AI  ·  IA SUPERVIVENCIA   |
+  |       conhecimento offline  ·  offline knowledge             |
+  +--------------------------------------------------------------+
+"""
+
+MSG = {
+    "pt": {"open": "Abra no navegador:", "lan": "Outros aparelhos da rede podem acessar:", "stop": "Pressione Ctrl+C para encerrar.",
+           "bye": "Encerrando…", "you": "Você", "ai": "IA", "exit": "(digite 'sair' para encerrar)", "src": "Fontes",
+           "mode_llm": "modelo", "mode_search": "busca (sem IA generativa)", "starting": "Iniciando…"},
+    "en": {"open": "Open in your browser:", "lan": "Other devices on the network can use:", "stop": "Press Ctrl+C to stop.",
+           "bye": "Shutting down…", "you": "You", "ai": "AI", "exit": "(type 'exit' to quit)", "src": "Sources",
+           "mode_llm": "model", "mode_search": "search (no generative AI)", "starting": "Starting…"},
+    "es": {"open": "Abre en el navegador:", "lan": "Otros dispositivos de la red pueden acceder:", "stop": "Pulsa Ctrl+C para salir.",
+           "bye": "Cerrando…", "you": "Tú", "ai": "IA", "exit": "(escribe 'salir' para terminar)", "src": "Fuentes",
+           "mode_llm": "modelo", "mode_search": "búsqueda (sin IA generativa)", "starting": "Iniciando…"},
+}
+
+
+def lan_ip():
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("10.255.255.255", 1))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return None
+
+
+def cmd_start(args, settings):
+    from app.engine import Engine
+    from app.launcher import Launcher
+    from app.server import serve
+
+    m = MSG[args.lang]
+    print(BANNER)
+    print(f"  v{__version__} — {platform_key()}\n")
+    print(m["starting"])
+    launcher = Launcher(settings)
+    if not args.no_engines:
+        launcher.start_llm()
+        launcher.start_kiwix()
+    engine = Engine(settings)
+    host = args.host or settings.get("web_host", "127.0.0.1")
+    port = args.port or settings.get("web_port", 8090)
+    try:
+        httpd = serve(engine, settings, host, port)
+    except OSError:
+        url = f"http://127.0.0.1:{port}/?lang={args.lang}"
+        print(f"\n  A interface já parece estar aberta / UI already running: {url}")
+        if settings.get("open_browser", True) and not args.no_browser:
+            webbrowser.open(url)
+        launcher.stop()
+        return
+    url = f"http://127.0.0.1:{port}/?lang={args.lang}"
+    print(f"\n  {m['open']}  {url}")
+    if host == "0.0.0.0":
+        ip = lan_ip()
+        if ip:
+            print(f"  {m['lan']}  http://{ip}:{port}/?lang={args.lang}")
+    print(f"  {m['stop']}\n")
+    if settings.get("open_browser", True) and not args.no_browser:
+        threading.Timer(1.0, lambda: webbrowser.open(url)).start()
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\n" + m["bye"])
+    finally:
+        httpd.server_close()
+        launcher.stop()
+
+
+def _print_answer(engine, question, lang, history):
+    m = MSG[lang]
+    sys.stdout.write(f"\n{m['ai']}: ")
+    sys.stdout.flush()
+    text, sources, info = [], [], {}
+    for kind, data in engine.answer(question, lang, history=history):
+        if kind == "sources":
+            sources = data
+        elif kind == "token":
+            text.append(data)
+            sys.stdout.write(data)
+            sys.stdout.flush()
+        elif kind == "done":
+            info = data
+    if sources:
+        print(f"\n\n{m['src']}:")
+        for s in sources:
+            where = s.get("link") or f"knowledge/{s['lang']}/{s['doc_id']}.md#{s['anchor']}"
+            print(f"  [{s['n']}] {s['doc_title']} › {s['section']}  ({where})")
+    mode = m["mode_llm"] if info.get("mode") == "llm" else m["mode_search"]
+    print(f"  — {mode}, {info.get('seconds', 0)}s\n")
+    return "".join(text)
+
+
+def _engine_with_launcher(args, settings):
+    from app.engine import Engine
+    from app.launcher import Launcher
+    launcher = Launcher(settings, say=lambda *_: None)
+    if not args.no_engines:
+        started = launcher.start_llm()
+        launcher.start_kiwix()
+        engine = Engine(settings)
+        if started and launcher.procs:
+            for _ in range(90):  # aguarda o modelo carregar
+                if engine.llm(force=True):
+                    break
+                time.sleep(1)
+    else:
+        engine = Engine(settings)
+    return engine, launcher
+
+
+def cmd_chat(args, settings):
+    m = MSG[args.lang]
+    engine, launcher = _engine_with_launcher(args, settings)
+    print(BANNER)
+    print(m["exit"])
+    history = []
+    try:
+        while True:
+            try:
+                q = input(f"\n{m['you']}: ").strip()
+            except EOFError:
+                break
+            if q.lower() in ("sair", "exit", "quit", "salir"):
+                break
+            if not q:
+                continue
+            ans = _print_answer(engine, q, args.lang, history)
+            history += [{"role": "user", "content": q}, {"role": "assistant", "content": ans}]
+            history = history[-8:]
+    except KeyboardInterrupt:
+        pass
+    finally:
+        launcher.stop()
+
+
+def cmd_ask(args, settings):
+    engine, launcher = _engine_with_launcher(args, settings)
+    try:
+        _print_answer(engine, " ".join(args.text), args.lang, [])
+    finally:
+        launcher.stop()
+
+
+def cmd_search(args, settings):
+    from app.knowledge import KnowledgeBase
+    kb = KnowledgeBase()
+    for score, ch in kb.search(" ".join(args.text), args.lang, k=args.k):
+        print(f"[{score:5.2f}] {ch.doc_title} › {ch.section}  (knowledge/{ch.lang}/{ch.doc_id}.md)")
+        snippet = ch.text.replace("\n", " ")
+        print("        " + (snippet[:220] + "…" if len(snippet) > 220 else snippet))
+
+
+def cmd_status(args, settings):
+    from app.engine import Engine
+    from app.launcher import find_kiwix_serve, find_llama_server, find_model, find_zims
+    print(f"IA da Sobrevivência v{__version__} — {platform_key()}")
+    binary, kind = find_llama_server()
+    print(f"  Motor de IA ({kind or 'llama.cpp'}): {binary or '—'}")
+    print(f"  Modelo: {find_model(settings) or '—'}")
+    print(f"  kiwix-serve: {find_kiwix_serve() or '—'}")
+    zims = find_zims()
+    print(f"  Bases ZIM: {len(zims)}")
+    for z in zims:
+        print(f"    - {os.path.basename(z)}  ({os.path.getsize(z) / 1024 ** 3:.2f} GB)")
+    st = Engine(settings).status()
+    print(f"  IA ativa agora: {st['llm'] or 'não (modo busca)'}")
+    print(f"  Kiwix ativo agora: {'sim' if st['kiwix'] else 'não'}")
+    for lang, s in st["knowledge"].items():
+        print(f"  Guias [{lang}]: {s['docs']} documentos, {s['chunks']} trechos")
+
+
+def cmd_prepare(args, settings):
+    from app import prepare
+    prepare.run(lang=args.lang, model=args.model, zims=args.zims, oses=args.os, python=args.python,
+                yes=args.yes, search=args.search, skip_tools=args.skip_tools)
+
+
+def main():
+    settings = load_settings()
+    p = argparse.ArgumentParser(description="IA da Sobrevivência — offline survival assistant")
+    p.add_argument("--lang", choices=LANGS, default=settings.get("language", "pt"))
+    p.add_argument("--no-engines", action="store_true", help="não iniciar llama.cpp/kiwix-serve")
+    sub = p.add_subparsers(dest="cmd")
+
+    s = sub.add_parser("start", help="interface web")
+    s.add_argument("--host")
+    s.add_argument("--port", type=int)
+    s.add_argument("--no-browser", action="store_true")
+
+    sub.add_parser("chat", help="conversa no terminal")
+    a = sub.add_parser("ask", help="pergunta única")
+    a.add_argument("text", nargs="+")
+    se = sub.add_parser("search", help="busca nos guias")
+    se.add_argument("text", nargs="+")
+    se.add_argument("-k", type=int, default=5)
+    sub.add_parser("status", help="o que está instalado")
+
+    pr = sub.add_parser("prepare", help="baixar modelo, motores e bases (precisa de internet)")
+    pr.add_argument("--model", help="id do modelo em config/models.json ou 'nenhum'")
+    pr.add_argument("--zims", help="minimo | recomendado | completo | nenhum")
+    pr.add_argument("--os", help="this | all | lista separada por vírgula (ex.: windows-x86_64,macos-arm64)")
+    pr.add_argument("--python", action="store_true", default=None, help="incluir Python portátil")
+    pr.add_argument("--yes", action="store_true", help="não perguntar nada (usa padrões)")
+    pr.add_argument("--search", help="procurar bases no catálogo do Kiwix")
+    pr.add_argument("--skip-tools", action="store_true", help="baixar só modelo e ZIMs")
+
+    # Aceita opções em qualquer ordem (ex.: iniciar.bat --host 0.0.0.0  =>  "--host 0.0.0.0 start").
+    argv = sys.argv[1:]
+    cmds = ("start", "chat", "ask", "search", "status", "prepare")
+    if argv and argv[-1] == "start" and any(a in cmds for a in argv[:-1]):
+        argv = argv[:-1]  # os scripts .bat/.sh acrescentam "start" por padrão
+    pos = next((i for i, a in enumerate(argv) if a in cmds), None)
+    if pos:
+        argv = [argv[pos]] + argv[:pos] + argv[pos + 1:]
+    if "--lang" in argv:
+        i = argv.index("--lang")
+        if i + 1 < len(argv):
+            lang = argv[i + 1]
+            argv = argv[:i] + argv[i + 2:]
+            argv = ["--lang", lang] + argv
+    for flag in ("--no-engines",):
+        if flag in argv:
+            argv.remove(flag)
+            argv.insert(0, flag)
+    args = p.parse_args(argv)
+    if args.lang != settings.get("language"):
+        settings["language"] = args.lang
+
+    cmd = args.cmd or "start"
+    if cmd == "start" and not hasattr(args, "host"):
+        args.host, args.port, args.no_browser = None, None, False
+    {"start": cmd_start, "chat": cmd_chat, "ask": cmd_ask, "search": cmd_search,
+     "status": cmd_status, "prepare": cmd_prepare}[cmd](args, settings)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IA da Sobrevivência</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <button class="icon-btn menu-btn" id="menuBtn" aria-label="Menu">
+    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+  <a class="brand" href="#" id="homeLink">
+    <img src="icon.svg" alt="" width="30" height="30">
+    <span><b data-i18n="title">IA da Sobrevivência</b><small data-i18n="subtitle">funciona sem internet</small></span>
+  </a>
+  <div class="status" id="status">
+    <span class="chip" id="chipLlm"><i></i><span>…</span></span>
+    <span class="chip" id="chipKiwix"><i></i><span>…</span></span>
+  </div>
+  <div class="langs" role="group" aria-label="Idioma">
+    <button data-lang="pt">PT</button><button data-lang="en">EN</button><button data-lang="es">ES</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="side" id="side">
+    <button class="ask-btn" id="askBtn">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 5h16v11H8l-4 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      <span data-i18n="ask">Perguntar à IA</span>
+    </button>
+    <div class="filter">
+      <input type="search" id="filter" data-i18n-ph="filter" placeholder="Buscar nos guias…" autocomplete="off">
+    </div>
+    <div id="searchResults" class="search-results"></div>
+    <h3 class="side-h" data-i18n="index">Índice</h3>
+    <nav id="toc" class="toc"></nav>
+    <p class="side-foot" data-i18n="foot">Imprima os guias críticos: papel não precisa de energia.</p>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main class="main">
+    <!-- CHAT -->
+    <section id="chatView" class="view">
+      <div class="chat" id="chat">
+        <div class="welcome" id="welcome">
+          <div class="sos">
+            <b data-i18n="emerg">Emergência?</b>
+            <span data-i18n="emergTxt">Se houver telefone: SAMU 192 · Bombeiros 193 · Europa 112 · EUA 911</span>
+          </div>
+          <h1 data-i18n="hello">Pergunte qualquer coisa sobre sobrevivência</h1>
+          <p class="lead" data-i18n="helloTxt">Respostas baseadas nos guias do kit e nas bibliotecas offline, com as fontes citadas.</p>
+          <div class="quick" id="quick"></div>
+        </div>
+      </div>
+      <form class="composer" id="composer">
+        <textarea id="q" rows="1" data-i18n-ph="placeholder" placeholder="Ex.: como purificar água da chuva?" required></textarea>
+        <button type="submit" id="send" class="send" aria-label="Enviar">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12l16-8-6 16-2-6z" fill="currentColor"/></svg>
+        </button>
+        <label class="opt"><input type="checkbox" id="useKiwix" checked> <span data-i18n="useKiwix">usar bibliotecas Kiwix</span></label>
+      </form>
+    </section>
+
+    <!-- GUIA -->
+    <section id="guideView" class="view hidden">
+      <div class="guide-bar">
+        <button class="link-btn" id="backBtn">← <span data-i18n="back">Voltar para a IA</span></button>
+        <button class="link-btn" id="printBtn" data-i18n="print">Imprimir</button>
+      </div>
+      <article class="doc" id="doc"></article>
+    </section>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

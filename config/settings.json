@@ -1,0 +1,24 @@
+{
+  "language": "pt",
+  "web_host": "127.0.0.1",
+  "web_port": 8090,
+  "open_browser": true,
+
+  "llm_backend": "auto",
+  "llm_url": "http://127.0.0.1:8091/v1",
+  "ollama_url": "http://127.0.0.1:11434",
+  "ollama_model": "qwen2.5:3b",
+  "llm_port": 8091,
+  "llm_context": 8192,
+  "llm_threads": 0,
+  "llm_max_tokens": 900,
+  "llm_temperature": 0.2,
+
+  "kiwix_url": "http://127.0.0.1:8092",
+  "kiwix_port": 8092,
+  "kiwix_enabled": true,
+  "kiwix_results": 3,
+
+  "search_results": 5,
+  "context_chars": 7000
+}

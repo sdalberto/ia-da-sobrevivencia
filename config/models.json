@@ -1,0 +1,62 @@
+{
+  "_comment": "Modelos GGUF para o motor llama.cpp. Troque ou adicione modelos aqui. 'default' é usado quando nenhum é escolhido.",
+  "default": "padrao",
+  "models": [
+    {
+      "id": "leve",
+      "name": "Qwen2.5 1.5B Instruct (Q4_K_M)",
+      "file": "Qwen2.5-1.5B-Instruct-Q4_K_M.gguf",
+      "url": "https://huggingface.co/bartowski/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf",
+      "size_gb": 1.0,
+      "ram_gb": 3,
+      "license": "Apache-2.0",
+      "desc": {
+        "pt": "Leve: roda em PCs fracos e com 4 GB de RAM. Respostas mais simples.",
+        "en": "Light: runs on weak PCs with 4 GB RAM. Simpler answers.",
+        "es": "Ligero: funciona en PCs débiles con 4 GB de RAM. Respuestas más simples."
+      }
+    },
+    {
+      "id": "padrao",
+      "name": "Qwen2.5 3B Instruct (Q4_K_M)",
+      "file": "Qwen2.5-3B-Instruct-Q4_K_M.gguf",
+      "url": "https://huggingface.co/bartowski/Qwen2.5-3B-Instruct-GGUF/resolve/main/Qwen2.5-3B-Instruct-Q4_K_M.gguf",
+      "size_gb": 1.9,
+      "ram_gb": 6,
+      "license": "Qwen Research License (uso pessoal/pesquisa)",
+      "desc": {
+        "pt": "Padrão: bom equilíbrio para notebooks com 8 GB de RAM. Fala bem português, inglês e espanhol.",
+        "en": "Default: good balance for laptops with 8 GB RAM. Good in Portuguese, English and Spanish.",
+        "es": "Estándar: buen equilibrio para portátiles con 8 GB de RAM. Habla bien portugués, inglés y español."
+      }
+    },
+    {
+      "id": "forte",
+      "name": "Qwen2.5 7B Instruct (Q4_K_M)",
+      "file": "Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+      "url": "https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF/resolve/main/Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+      "size_gb": 4.7,
+      "ram_gb": 10,
+      "license": "Apache-2.0",
+      "desc": {
+        "pt": "Forte: respostas melhores, precisa de 16 GB de RAM e é mais lento sem placa de vídeo.",
+        "en": "Strong: better answers, needs 16 GB RAM and is slower without a GPU.",
+        "es": "Fuerte: mejores respuestas, necesita 16 GB de RAM y es más lento sin tarjeta gráfica."
+      }
+    },
+    {
+      "id": "llama3b",
+      "name": "Llama 3.2 3B Instruct (Q4_K_M)",
+      "file": "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+      "url": "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+      "size_gb": 2.0,
+      "ram_gb": 6,
+      "license": "Llama 3.2 Community License",
+      "desc": {
+        "pt": "Alternativa ao padrão (Meta Llama 3.2).",
+        "en": "Alternative to the default (Meta Llama 3.2).",
+        "es": "Alternativa al estándar (Meta Llama 3.2)."
+      }
+    }
+  ]
+}
