@@ -33,7 +33,7 @@ Los archivos grandes (modelos, bases ZIM, motores) **no van al git**: el reposit
 ### 1. Descarga el repositorio
 
 ```bash
-git clone https://github.com/TU-USUARIO/ia-da-sobrevivencia.git
+git clone https://github.com/sdalberto/ia-da-sobrevivencia.git
 cd ia-da-sobrevivencia
 ```
 
